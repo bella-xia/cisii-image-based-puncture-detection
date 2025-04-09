@@ -5,7 +5,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from image_based_util_dbscan import filter_small_segments_with_dbscan
 
-# from image_conversion_without_using_ros import numpy_to_image
+from image_conversion_without_using_ros import numpy_to_image
 from image_based_util_kalman import KalmanFilter
 
 
@@ -37,8 +37,11 @@ class ImageProcessor:
         ), "mode should be normal, kalman or velocity"
 
         # load model
-        self.model = smp.from_pretrained(model_path)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = smp.Unet("resnet18", encoder_weights="imagenet", classes=1)
+        self.model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        # self.model = smp.from_pretrained(model_path)
+        self.device = torch.device("cpu")
+        # torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.model.eval()
 
@@ -101,26 +104,24 @@ class ImageProcessor:
             return
 
         if not spec_strs:
-            spec_strs = [""] * len(publishers)
+            spec_strs = [None] * len(publishers)
 
         for publisher, data_instance, spec_str in zip(publishers, data, spec_strs):
             if publisher:
                 try:
+                    print(publisher)
                     publisher.publish(data_instance)
+                    if spec_str:
+                        print(
+                            f"Successfully published to {spec_str}. Expected to publish {data_instance}"
+                        )   
                 except Exception as e:
-                    if self.logger:
-                        self.logger.info(
-                            f"Failed to publish data {data_instance} at publisher-{spec_str}: {str(e)}"
-                        )
-                    else:
-                        pass
+                    print(f"Failed to publish data {data_instance} at publisher-{spec_str}: {e}")
+                    pass
             else:
-                if self.logger:
-                    self.logger.info(
-                        f"Publisher-{spec_str} is not defined, skipping publishing. Expected to publish {data_instance}"
-                    )
-                else:
-                    continue
+                print(
+                       f"Publisher-{spec_str} is not defined, skipping publishing. Expected to publish {data_instance}"
+                )
 
     def generate_auxiliary_data(self, image):
         if not self.transform:
@@ -130,13 +131,17 @@ class ImageProcessor:
         else:
             tensor_img = self.transform(image=image)["image"].unsqueeze(0)
         tensor_img = tensor_img.to(self.device)
+        if tensor_img.shape[-1] != self.img_w or tensor_img.shape[-2] != self.img_h:
+            mask = np.zeros((self.img_h, self.img_w))
+            mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
+            return mask_msg, -1, -1
 
         with torch.no_grad():
             results = self.model.predict(tensor_img)
         mask = results.sigmoid().detach().cpu().numpy()[0, 0, :, :]
         mask = filter_small_segments_with_dbscan(mask)
-        # mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
-        # self.try_publish([self.mask_publisher], [mask_msg])
+        mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
+        self.try_publish([self.mask_publisher], [mask_msg])
         y_indices, x_indices = np.where(mask > 0.1)
         if len(y_indices) == 0:
             top, left = -1, -1
@@ -144,11 +149,11 @@ class ImageProcessor:
             top = np.min(y_indices)
             left = np.min(x_indices[y_indices == top])
 
-        return left, top
+        return mask_msg, left, top
 
     def serialized_processing(self, new_image):
 
-        px_t, py_t = self.generate_auxiliary_data(new_image)
+        mask_msg, px_t, py_t = self.generate_auxiliary_data(new_image)
 
         self.try_publish(
             [self.seg_posx_publisher, self.seg_posy_publisher],
@@ -178,10 +183,11 @@ class ImageProcessor:
                 ],
             )
 
-            return
+            return px_t, py_t, -1, -1, -1, -1, mask_msg, False
 
         x_update = self.kalman.filter_instance(np.array([px_t, py_t]))
         kpx_t, kpy_t = x_update[0], x_update[2]
+        puncture_flag = False
 
         self.try_publish(
             [
@@ -253,6 +259,7 @@ class ImageProcessor:
                 )
             ):
                 self.puncture_detect = True
+                puncture_flag = True
                 self.try_publish(
                     [self.puncture_flag_publisher], [True], spec_strs=["puncture_flag"]
                 )
@@ -267,3 +274,4 @@ class ImageProcessor:
 
         self.px, self.py = px_t, py_t
         self.kpx, self.kpy = kpx_t, kpy_t
+        return px_t, py_t, float(x_update[0]), float(x_update[2]), float(x_update[1]), float(x_update[3]), mask_msg, puncture_flag

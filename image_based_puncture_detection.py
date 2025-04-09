@@ -45,14 +45,14 @@ def detect_puncture(cropped_image):
     return puncture_flag
 
 if __name__ == "__main__": 
-    # cropping model
-    needle_det_model = YOLO(
-        "crop_weights7.pt"  # TODO: change path to trained bounding box model
-    )
-    # detection classification model
-    puncture_det_model = YOLO(
-        "classification_weights.pt" # TODO: change path to trained classification model
-    )
+    # # cropping model
+    # needle_det_model = YOLO(
+    #     "crop_weights7.pt"  # TODO: change path to trained bounding box model
+    # )
+    # # detection classification model
+    # puncture_det_model = YOLO(
+    #     "classification_weights.pt" # TODO: change path to trained classification model
+    # )
 
     pub_puncture_flag = rospy.Publisher("PunctureFlagImage", Bool, queue_size=1)
     pub_puncture_prob = rospy.Publisher("PunctureProbabilityImage", Float32, queue_size=1)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     rospy.init_node('image_puncture_detection', anonymous=True)
     time.sleep(0.5)
     while not rospy.is_shutdown():
-        cropped_image = find_and_crop(iOCT_frame)
-        puncture_flag = detect_puncture(cropped_image)
-        pub_puncture_flag.publish(puncture_flag)
+        # cropped_image = find_and_crop(iOCT_frame)
+        # puncture_flag = detect_puncture(cropped_image)
+        pub_puncture_flag.publish(False)
 

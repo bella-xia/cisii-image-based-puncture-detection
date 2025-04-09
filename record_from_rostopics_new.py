@@ -21,40 +21,40 @@ RosTopic: namedtuple = namedtuple(
     "RosTopic", ["subscribed_topic", "message_type", "subscriber_attr", "assign_attr"]
 )
 
-ROS_SUBSCRIPTION_LIST: list[namedtuple] = [
+ROS_SUBSCRIPTION_LIST = [
     # RosTopic("/eye_robot/FrameEE", Transform, lambda _: None),
     RosTopic("/decklink/camera/image_raw", Image, "iOCT_camera_sub", "iOCT_image"),
-    RosTopic("/b_scan", Image, "b_scan_sub", "b_scan"),
-    RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
-    RosTopic(
-        "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
-    ),
-    RosTopic(
-        "/eye_robot/TipForceNormAEWMA_Global", Float64, "F_tip_AEWMA_sub", "F_tip_AEWMA"
-    ),
-    RosTopic("/eye_robot/TipForceNormDotGlobal", Float64, "F_tip_dot_sub", "F_tip_dot"),
-    RosTopic(
-        "/eye_robot/TipForceNormDotEMA_Global",
-        Float64,
-        "F_tip_dot_EMA_sub",
-        "F_tip_dot_EMA",
-    ),
-    RosTopic(
-        "/eye_robot/TipForceNormDotAEWMA_Global",
-        Float64,
-        "F_tip_dot_AEWMA_sub",
-        "F_tip_dot_AEWMA",
-    ),
-    RosTopic("/eye_robot/robotVelZ_Global", Float64, "velocity_z_sub", "velocity_z"),
-    RosTopic(
-        "/eye_robot/TimePuncture_Global", Float64, "time_puncture_sub", "time_puncture"
-    ),
-    RosTopic(
-        "/eye_robot/PunctureDetectionFlag_Global",
-        Int32,
-        "puncture_detection_flag_sub",
-        "puncture_flag",
-    ),
+    # RosTopic("/b_scan", Image, "b_scan_sub", "b_scan"),
+    # RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
+    # RosTopic(
+    #     "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
+    # ),
+    # RosTopic(
+    #     "/eye_robot/TipForceNormAEWMA_Global", Float64, "F_tip_AEWMA_sub", "F_tip_AEWMA"
+    # ),
+    # RosTopic("/eye_robot/TipForceNormDotGlobal", Float64, "F_tip_dot_sub", "F_tip_dot"),
+    # RosTopic(
+    #     "/eye_robot/TipForceNormDotEMA_Global",
+    #     Float64,
+    #     "F_tip_dot_EMA_sub",
+    #     "F_tip_dot_EMA",
+    # ),
+    # RosTopic(
+    #     "/eye_robot/TipForceNormDotAEWMA_Global",
+    #     Float64,
+    #     "F_tip_dot_AEWMA_sub",
+    #     "F_tip_dot_AEWMA",
+    # ),
+    # RosTopic("/eye_robot/robotVelZ_Global", Float64, "velocity_z_sub", "velocity_z"),
+    # RosTopic(
+    #     "/eye_robot/TimePuncture_Global", Float64, "time_puncture_sub", "time_puncture"
+    # ),
+    # RosTopic(
+    #     "/eye_robot/PunctureDetectionFlag_Global",
+    #     Int32,
+    #     "puncture_detection_flag_sub",
+    #     "puncture_flag",
+    # ),
     # Bella Hanbei
     RosTopic(
         "/image_model/PunctureImageFlag",
@@ -71,7 +71,7 @@ ROS_SUBSCRIPTION_LIST: list[namedtuple] = [
     RosTopic("/image_model/KalmanVelY", Float64, "kalman_vel_y_sub", "kalman_vel_y"),
 ]
 
-DATA_ASSIGNMENT: set[str] = {"b_scan", "iOCT_image", "mask_image"}
+DATA_ASSIGNMENT = {"b_scan", "iOCT_image", "mask_image"}
 
 
 class ros_topics:
@@ -79,9 +79,9 @@ class ros_topics:
         self.bridge = CvBridge()
 
         # subscribers
-        self.transform_sub = rospy.Subscriber(
-            "/eye_robot/FrameEE", Transform, self.main_callback
-        )
+        # self.transform_sub = rospy.Subscriber(
+        #     "/eye_robot/FrameEE", Transform, self.main_callback
+        # )
 
         for ros_topic in ROS_SUBSCRIPTION_LIST:
             setattr(
@@ -97,14 +97,14 @@ class ros_topics:
         time.sleep(1)
 
         # do we need to assign these values?
-        self.vec3_x = None
-        self.vec3_y = None
-        self.vec3_z = None
-        self.rot_x = None
-        self.rot_y = None
-        self.rot_w = None
-        for ros_topic in ROS_SUBSCRIPTION_LIST:
-            setattr(ros_topic.assign_attr, self, None)
+        # self.vec3_x = None
+        # self.vec3_y = None
+        # self.vec3_z = None
+        # self.rot_x = None
+        # self.rot_y = None
+        # self.rot_w = None
+        # for ros_topic in ROS_SUBSCRIPTION_LIST:
+        #     setattr(ros_topic.assign_attr, self, None)
 
     def main_callback(self, data):
         self.vec3_x = data.translation.x
@@ -187,22 +187,22 @@ while not rospy.is_shutdown():
     # get ee point
     ee_points.append(
         [
-            rt.vec3_x,
-            rt.vec3_y,
-            rt.vec3_z,
-            rt.rot_x,
-            rt.rot_y,
-            rt.rot_z,
-            rt.rot_w,
-            rt.velocity_z,
-            rt.time_puncture,
-            rt.F_tip,
-            rt.F_tip_EMA,
-            rt.F_tip_AEWMA,
-            rt.F_tip_dot,
-            rt.F_tip_dot_EMA,
-            rt.F_tip_dot_AEWMA,
-            rt.puncture_flag,
+            # rt.vec3_x,
+            # rt.vec3_y,
+            # rt.vec3_z,
+            # rt.rot_x,
+            # rt.rot_y,
+            # rt.rot_z,
+            # rt.rot_w,
+            # rt.velocity_z,
+            # rt.time_puncture,
+            # rt.F_tip,
+            # rt.F_tip_EMA,
+            # rt.F_tip_AEWMA,
+            # rt.F_tip_dot,
+            # rt.F_tip_dot_EMA,
+            # rt.F_tip_dot_AEWMA,
+            # rt.puncture_flag,
             # Bella & Hanbei
             rt.puncture_image_flag,
             rt.segment_pos_x,
@@ -223,22 +223,22 @@ while not rospy.is_shutdown():
 
 # save ee points
 header = [
-    "vec3_x",
-    "vec3_y",
-    "vec3_z",
-    "rot_x",
-    "rot_y",
-    "rot_z",
-    "rot_w",
-    "velocity_z",
-    "time_puncture",
-    "F_tip",
-    "F_tip_EMA",
-    "F_tip_AEWMA",
-    "F_tip_dot",
-    "F_tip_dot_EMA",
-    "F_tip_dot_AEWMA",
-    "puncture_flag",
+    # "vec3_x",
+    # "vec3_y",
+    # "vec3_z",
+    # "rot_x",
+    # "rot_y",
+    # "rot_z",
+    # "rot_w",
+    # "velocity_z",
+    # "time_puncture",
+    # "F_tip",
+    # "F_tip_EMA",
+    # "F_tip_AEWMA",
+    # "F_tip_dot",
+    # "F_tip_dot_EMA",
+    # "F_tip_dot_AEWMA",
+    # "puncture_flag",
     # Bella & Hanbei
     "puncture_image_flag",
     "puncture_image_flag",
