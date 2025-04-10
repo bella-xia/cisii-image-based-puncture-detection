@@ -5,7 +5,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from image_based_util_dbscan import filter_small_segments_with_dbscan
 
-from image_conversion_without_using_ros import numpy_to_image
+# from image_conversion_without_using_ros import numpy_to_image
 from image_based_util_kalman import KalmanFilter
 
 
@@ -19,17 +19,8 @@ class ImageProcessor:
         outlier=60,
         y_border=430,
         numeric_threshold=10,
-        rate_threshod=None,
+        rate_threshold=None,
         mode="velocity",
-        seg_posx_publisher=None,
-        seg_posy_publisher=None,
-        kal_posx_publisher=None,
-        kal_posy_publisher=None,
-        kal_velx_publisher=None,
-        kal_vely_publisher=None,
-        mask_publisher=None,
-        puncture_flag_publisher=None,
-        logger=None,
     ):
 
         assert (
@@ -38,8 +29,8 @@ class ImageProcessor:
 
         # load model
         self.model = smp.Unet("resnet18", encoder_weights="imagenet", classes=1)
-        self.model.load_state_dict(torch.load(model_path, map_location='cpu'))
-        # self.model = smp.from_pretrained(model_path)
+        # TODO: try to load the model with GPU
+        self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.device = torch.device("cpu")
         # torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
@@ -73,55 +64,8 @@ class ImageProcessor:
 
         self.first_n = 0
         self.outlier, self.y_border = outlier, y_border
-        self.numeric_threshold = (numeric_threshold,)
-        self.rate_threshold = rate_threshod
-
-        # define all publishers
-        self.seg_posx_publisher, self.seg_posy_publisher = (
-            seg_posx_publisher,
-            seg_posy_publisher,
-        )
-        self.kal_posx_publisher, self.kal_posy_publisher = (
-            kal_posx_publisher,
-            kal_posy_publisher,
-        )
-        self.kal_velx_publisher, self.kal_vely_publisher = (
-            kal_velx_publisher,
-            kal_vely_publisher,
-        )
-        self.mask_publisher, self.puncture_flag_publisher = (
-            mask_publisher,
-            puncture_flag_publisher,
-        )
-        self.logger = logger
-
-    def try_publish(self, publishers, data, spec_strs=None):
-        if len(publishers) != len(data):
-            if self.logger:
-                self.logger.info(
-                    "Mismatch between number of publishers and data instances. Skipping publishing."
-                )
-            return
-
-        if not spec_strs:
-            spec_strs = [None] * len(publishers)
-
-        for publisher, data_instance, spec_str in zip(publishers, data, spec_strs):
-            if publisher:
-                try:
-                    print(publisher)
-                    publisher.publish(data_instance)
-                    if spec_str:
-                        print(
-                            f"Successfully published to {spec_str}. Expected to publish {data_instance}"
-                        )   
-                except Exception as e:
-                    print(f"Failed to publish data {data_instance} at publisher-{spec_str}: {e}")
-                    pass
-            else:
-                print(
-                       f"Publisher-{spec_str} is not defined, skipping publishing. Expected to publish {data_instance}"
-                )
+        self.numeric_threshold = numeric_threshold
+        self.rate_threshold = rate_threshold
 
     def generate_auxiliary_data(self, image):
         if not self.transform:
@@ -133,77 +77,41 @@ class ImageProcessor:
         tensor_img = tensor_img.to(self.device)
         if tensor_img.shape[-1] != self.img_w or tensor_img.shape[-2] != self.img_h:
             mask = np.zeros((self.img_h, self.img_w))
-            mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
-            return mask_msg, -1, -1
+            # mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
+            print(
+                f"invalid image size {tensor_img.shape[-1]}x{tensor_img.shape[-2] if tensor_img else '<null>'}."
+            )
+            return None, -1, -1
+            # return mask_msg, -1, -1
 
         with torch.no_grad():
             results = self.model.predict(tensor_img)
         mask = results.sigmoid().detach().cpu().numpy()[0, 0, :, :]
         mask = filter_small_segments_with_dbscan(mask)
-        mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
-        self.try_publish([self.mask_publisher], [mask_msg])
+        # mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
         y_indices, x_indices = np.where(mask > 0.1)
         if len(y_indices) == 0:
-            top, left = -1, -1
+            pos_x, pos_y = -1, -1
         else:
-            top = np.min(y_indices)
-            left = np.min(x_indices[y_indices == top])
+            pos_y = np.min(y_indices)
+            pos_x = np.min(x_indices[y_indices == pos_y])
 
-        return mask_msg, left, top
+        return None, pos_x, pos_y
+        # return mask_msg, pos_x, pos_y
 
     def serialized_processing(self, new_image):
 
         mask_msg, px_t, py_t = self.generate_auxiliary_data(new_image)
 
-        self.try_publish(
-            [self.seg_posx_publisher, self.seg_posy_publisher],
-            [px_t, py_t],
-            spec_strs=["seg_posx", "seg_posy"],
-        )
-
         if py_t == -1 or px_t == -1 or py_t > self.y_border:
             self.protection_mode = False
             self.first_n = 0
 
-            self.try_publish(
-                [
-                    self.kal_posx_publisher,
-                    self.kal_posy_publisher,
-                    self.kal_velx_publisher,
-                    self.kal_vely_publisher,
-                    self.puncture_flag_publisher,
-                ],
-                [-1, -1, -1, -1, False],
-                spec_strs=[
-                    "kal_posx",
-                    "kal_posy",
-                    "kal_velx",
-                    "kal_vely",
-                    "puncture_flag",
-                ],
-            )
-
-            return px_t, py_t, -1, -1, -1, -1, mask_msg, False
+            return [px_t, py_t, -1, -1, -1, -1], mask_msg, False
 
         x_update = self.kalman.filter_instance(np.array([px_t, py_t]))
         kpx_t, kpy_t = x_update[0], x_update[2]
         puncture_flag = False
-
-        self.try_publish(
-            [
-                self.kal_posx_publisher,
-                self.kal_posy_publisher,
-                self.kal_velx_publisher,
-                self.kal_vely_publisher,
-            ],
-            [
-                float(x_update[0]),
-                float(x_update[2]),
-                float(x_update[1]),
-                float(x_update[3]),
-            ],
-            spec_strs=["kal_posx", "kal_posy", "kal_velx", "kal_vely"],
-        )
 
         if self.px == self.img_w or self.py == self.img_h:
             # first instance where the needle appears
@@ -260,18 +168,18 @@ class ImageProcessor:
             ):
                 self.puncture_detect = True
                 puncture_flag = True
-                self.try_publish(
-                    [self.puncture_flag_publisher], [True], spec_strs=["puncture_flag"]
-                )
-            else:
-                self.try_publish(
-                    [self.puncture_flag_publisher], [False], spec_strs=["puncture_flag"]
-                )
-        else:
-            self.try_publish(
-                [self.puncture_flag_publisher], [False], spec_strs=["puncture_flag"]
-            )
 
         self.px, self.py = px_t, py_t
         self.kpx, self.kpy = kpx_t, kpy_t
-        return px_t, py_t, float(x_update[0]), float(x_update[2]), float(x_update[1]), float(x_update[3]), mask_msg, puncture_flag
+        return (
+            [
+                px_t,
+                py_t,
+                float(x_update[0]),
+                float(x_update[2]),
+                float(x_update[1]),
+                float(x_update[3]),
+            ],
+            mask_msg,
+            puncture_flag,
+        )
