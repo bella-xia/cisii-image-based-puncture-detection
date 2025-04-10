@@ -25,40 +25,40 @@ RosTopic = namedtuple(
 ROS_SUBSCRIPTION_LIST = [
     # RosTopic("/eye_robot/FrameEE", Transform, lambda _: None),
     RosTopic("/decklink/camera/image_raw", Image, "iOCT_camera_sub", "iOCT_image"),
-    # RosTopic("/b_scan", Image, "b_scan_sub", "b_scan"),
-    # RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
-    # RosTopic(
-    #     "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
-    # ),
-    # RosTopic(
-    #     "/eye_robot/TipForceNormAEWMA_Global", Float64, "F_tip_AEWMA_sub", "F_tip_AEWMA"
-    # ),
-    # RosTopic("/eye_robot/TipForceNormDotGlobal", Float64, "F_tip_dot_sub", "F_tip_dot"),
-    # RosTopic(
-    #     "/eye_robot/TipForceNormDotEMA_Global",
-    #     Float64,
-    #     "F_tip_dot_EMA_sub",
-    #     "F_tip_dot_EMA",
-    # ),
-    # RosTopic(
-    #     "/eye_robot/TipForceNormDotAEWMA_Global",
-    #     Float64,
-    #     "F_tip_dot_AEWMA_sub",
-    #     "F_tip_dot_AEWMA",
-    # ),
-    # RosTopic("/eye_robot/robotVelZ_Global", Float64, "velocity_z_sub", "velocity_z"),
-    # RosTopic(
-    #     "/eye_robot/TimePuncture_Global", Float64, "time_puncture_sub", "time_puncture"
-    # ),
-    # RosTopic(
-    #     "/eye_robot/PunctureDetectionFlag_Global",
-    #     Int32,
-    #     "puncture_detection_flag_sub",
-    #     "puncture_flag",
-    # ),
+    RosTopic("/b_scan", Image, "b_scan_sub", "b_scan"),
+    RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
+    RosTopic(
+        "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
+    ),
+    RosTopic(
+        "/eye_robot/TipForceNormAEWMA_Global", Float64, "F_tip_AEWMA_sub", "F_tip_AEWMA"
+    ),
+    RosTopic("/eye_robot/TipForceNormDotGlobal", Float64, "F_tip_dot_sub", "F_tip_dot"),
+    RosTopic(
+        "/eye_robot/TipForceNormDotEMA_Global",
+        Float64,
+        "F_tip_dot_EMA_sub",
+        "F_tip_dot_EMA",
+    ),
+    RosTopic(
+        "/eye_robot/TipForceNormDotAEWMA_Global",
+        Float64,
+        "F_tip_dot_AEWMA_sub",
+        "F_tip_dot_AEWMA",
+    ),
+    RosTopic("/eye_robot/robotVelZ_Global", Float64, "velocity_z_sub", "velocity_z"),
+    RosTopic(
+        "/eye_robot/TimePuncture_Global", Float64, "time_puncture_sub", "time_puncture"
+    ),
+    RosTopic(
+        "/eye_robot/PunctureDetectionFlag_Global",
+        Int32,
+        "puncture_detection_flag_sub",
+        "puncture_flag",
+    ),
     # Bella Hanbei
     RosTopic(
-        "/image_model/PunctureImageFlag",
+        "PunctureFlagImage",
         Bool,
         "puncture_image_flag_sub",
         "puncture_image_flag",
@@ -83,9 +83,9 @@ class ros_topics:
         self.bridge = CvBridge()
 
         # subscribers
-        # self.transform_sub = rospy.Subscriber(
-        #     "/eye_robot/FrameEE", Transform, self.main_callback
-        # )
+        self.transform_sub = rospy.Subscriber(
+            "/eye_robot/FrameEE", Transform, self.main_callback
+        )
 
         for ros_topic in ROS_SUBSCRIPTION_LIST:
             setattr(
@@ -144,13 +144,12 @@ rate = rospy.Rate(30)  # ROS Rate at 5Hz
 
 while (not rospy.is_shutdown()) and rt.model_start_flag:
     # Capture frame-by-frame
-    # print("No. ", num_frames)
+    print("No. ", num_frames)
     iOCT_frame = bridge.imgmsg_to_cv2(rt.iOCT_image, desired_encoding="bgr8")
     iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
 
     # save frame
-    # iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:06d}".format(num_frames) + ".jpg")
-    iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:.1f}.jpg".format(num_frames))
+    iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:.10f}.jpg".format(rt.time_puncture))
 
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
@@ -163,9 +162,8 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
 
     # Bella & Hanbei
     # save frame
-    # iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:06d}".format(num_frames) + ".jpg")
     mask_image_save_name = os.path.join(
-        ep_dir, "mask_image_{:.1f}.png".format(num_frames)
+        ep_dir, "mask_image_{:.10f}.png".format(rt.time_puncture)
     )
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
@@ -192,22 +190,22 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
     # get ee point
     ee_points.append(
         [
-            # rt.vec3_x,
-            # rt.vec3_y,
-            # rt.vec3_z,
-            # rt.rot_x,
-            # rt.rot_y,
-            # rt.rot_z,
-            # rt.rot_w,
-            # rt.velocity_z,
-            # rt.time_puncture,
-            # rt.F_tip,
-            # rt.F_tip_EMA,
-            # rt.F_tip_AEWMA,
-            # rt.F_tip_dot,
-            # rt.F_tip_dot_EMA,
-            # rt.F_tip_dot_AEWMA,
-            # rt.puncture_flag,
+            rt.vec3_x,
+            rt.vec3_y,
+            rt.vec3_z,
+            rt.rot_x,
+            rt.rot_y,
+            rt.rot_z,
+            rt.rot_w,
+            rt.velocity_z,
+            rt.time_puncture,
+            rt.F_tip,
+            rt.F_tip_EMA,
+            rt.F_tip_AEWMA,
+            rt.F_tip_dot,
+            rt.F_tip_dot_EMA,
+            rt.F_tip_dot_AEWMA,
+            rt.puncture_flag,
             # Bella & Hanbei
             rt.puncture_image_flag,
             rt.segment_pos_x,
@@ -228,24 +226,23 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
 
 # save ee points
 header = [
-    # "vec3_x",
-    # "vec3_y",
-    # "vec3_z",
-    # "rot_x",
-    # "rot_y",
-    # "rot_z",
-    # "rot_w",
-    # "velocity_z",
-    # "time_puncture",
-    # "F_tip",
-    # "F_tip_EMA",
-    # "F_tip_AEWMA",
-    # "F_tip_dot",
-    # "F_tip_dot_EMA",
-    # "F_tip_dot_AEWMA",
-    # "puncture_flag",
+    "vec3_x",
+    "vec3_y",
+    "vec3_z",
+    "rot_x",
+    "rot_y",
+    "rot_z",
+    "rot_w",
+    "velocity_z",
+    "time_puncture",
+    "F_tip",
+    "F_tip_EMA",
+    "F_tip_AEWMA",
+    "F_tip_dot",
+    "F_tip_dot_EMA",
+    "F_tip_dot_AEWMA",
+    "puncture_flag",
     # Bella & Hanbei
-    "puncture_image_flag",
     "puncture_image_flag",
     "segment_pos_x",
     "segment_pos_y",
