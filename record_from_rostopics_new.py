@@ -70,6 +70,9 @@ ROS_SUBSCRIPTION_LIST = [
     RosTopic("/image_model/KalmanPosY", Float64, "kalman_pos_y_sub", "kalman_pos_y"),
     RosTopic("/image_model/KalmanVelX", Float64, "kalman_vel_x_sub", "kalman_vel_x"),
     RosTopic("/image_model/KalmanVelY", Float64, "kalman_vel_y_sub", "kalman_vel_y"),
+    RosTopic(
+        "/image_model/ModelStartFlag", Bool, "model_start_flag_sub", "model_start_flag"
+    ),
 ]
 
 DATA_ASSIGNMENT = {"b_scan", "iOCT_image", "mask_image"}
@@ -139,18 +142,15 @@ os.makedirs(ep_dir)
 
 rate = rospy.Rate(30)  # ROS Rate at 5Hz
 
-while not rospy.is_shutdown():
+while (not rospy.is_shutdown()) and rt.model_start_flag:
     # Capture frame-by-frame
     # print("No. ", num_frames)
     iOCT_frame = bridge.imgmsg_to_cv2(rt.iOCT_image, desired_encoding="bgr8")
     iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
-    # cv2.imshow("iOCT_frame", iOCT_frame)
 
     # save frame
     # iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:06d}".format(num_frames) + ".jpg")
-    iOCT_save_name = os.path.join(
-        ep_dir, "iOCT_image_{:.1f}.jpg".format(num_frames)
-    )
+    iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:.1f}.jpg".format(num_frames))
 
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
@@ -170,8 +170,8 @@ while not rospy.is_shutdown():
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
     plt.imshow(mask_image_frame, cmap="gray")
+    plt.axis("off")
     plt.savefig(mask_image_save_name)
-    plt.show()
     plt.close()
     # cv2.imwrite(mask_image_save_name, mask_image_frame)
 

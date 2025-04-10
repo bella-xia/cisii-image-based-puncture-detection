@@ -76,6 +76,7 @@ if __name__ == "__main__":
     puncture_flag_publisher = rospy.Publisher(
         "/image_model/PunctureImageFlag", Bool, queue_size=1
     )
+    model_publisher = rospy.Publisher("/image_model/ModelStartFlag", Bool, queue_size=1)
     iOCT_camera_subscriber = rospy.Subscriber(
         "/decklink/camera/image_raw", Image, convert_ros_to_numpy
     )
@@ -85,8 +86,16 @@ if __name__ == "__main__":
 
     rospy.init_node("image_puncture_detection", anonymous=True)
     time.sleep(0.5)
-    while not rospy.is_shutdown():
-        numeric_data, mask, flag = image_processor.serialized_processing(iOCT_frame)
-        try_publish(numeric_publisher_arr, numeric_data, numeric_publisher_spec)
-        try_publish([mask_publisher], [mask])
-        try_publish([puncture_flag_publisher], [flag], ["puncture_flag_publisher"])
+    model_publisher.publish(True)
+    try:
+        while not rospy.is_shutdown():
+            numeric_data, mask, flag = image_processor.serialized_processing(iOCT_frame)
+            try_publish(numeric_publisher_arr, numeric_data, numeric_publisher_spec)
+            try_publish([mask_publisher], [mask])
+            try_publish([puncture_flag_publisher], [flag], ["puncture_flag_publisher"])
+    except KeyboardInterrupt:
+        model_publisher.publish(False)
+        print("Keyboard interrupted. Shutting down...")
+        exit(0)
+
+    model_publisher.publish(False)
