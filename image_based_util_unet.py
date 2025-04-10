@@ -1,11 +1,12 @@
 import numpy as np
 import torch, statistics, re
+import matplotlib.pyplot as plt
 import segmentation_models_pytorch as smp
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from image_based_util_dbscan import filter_small_segments_with_dbscan
 
-# from image_conversion_without_using_ros import numpy_to_image
+from image_conversion_without_using_ros import numpy_to_image
 from image_based_util_kalman import KalmanFilter
 
 
@@ -31,8 +32,8 @@ class ImageProcessor:
         self.model = smp.Unet("resnet18", encoder_weights="imagenet", classes=1)
         # TODO: try to load the model with GPU
         self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device("cpu")
-        # torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.model.eval()
 
@@ -68,6 +69,8 @@ class ImageProcessor:
         self.rate_threshold = rate_threshold
 
     def generate_auxiliary_data(self, image):
+        # plt.imshow(image)
+        # plt.show()
         if not self.transform:
             tensor_img = (
                 torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
@@ -77,18 +80,19 @@ class ImageProcessor:
         tensor_img = tensor_img.to(self.device)
         if tensor_img.shape[-1] != self.img_w or tensor_img.shape[-2] != self.img_h:
             mask = np.zeros((self.img_h, self.img_w))
-            # mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
+            mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
             print(
-                f"invalid image size {tensor_img.shape[-1]}x{tensor_img.shape[-2] if tensor_img else '<null>'}."
+                f"invalid image size {tensor_img.shape[-1]}x{tensor_img.shape[-2] if tensor_img != None else '<null>'}."
             )
-            return None, -1, -1
-            # return mask_msg, -1, -1
+            return mask_msg, -1, -1
 
         with torch.no_grad():
             results = self.model.predict(tensor_img)
         mask = results.sigmoid().detach().cpu().numpy()[0, 0, :, :]
         mask = filter_small_segments_with_dbscan(mask)
-        # mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
+        # plt.imshow(mask, cmap="gray")
+        # plt.show()
+        mask_msg = numpy_to_image(mask.astype(np.uint8), encoding="mono8")
         y_indices, x_indices = np.where(mask > 0.1)
         if len(y_indices) == 0:
             pos_x, pos_y = -1, -1
@@ -96,8 +100,7 @@ class ImageProcessor:
             pos_y = np.min(y_indices)
             pos_x = np.min(x_indices[y_indices == pos_y])
 
-        return None, pos_x, pos_y
-        # return mask_msg, pos_x, pos_y
+        return mask_msg, pos_x, pos_y
 
     def serialized_processing(self, new_image):
 

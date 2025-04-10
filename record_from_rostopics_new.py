@@ -2,6 +2,7 @@
 import cv2, os, time
 from datetime import datetime
 from collections import namedtuple
+import matplotlib.pyplot as plt
 
 # for ros stuff
 import rospy
@@ -17,7 +18,7 @@ bridge = CvBridge()
 isPunctureProbability = None
 max_corr_values = None
 
-RosTopic: namedtuple = namedtuple(
+RosTopic = namedtuple(
     "RosTopic", ["subscribed_topic", "message_type", "subscriber_attr", "assign_attr"]
 )
 
@@ -140,15 +141,15 @@ rate = rospy.Rate(30)  # ROS Rate at 5Hz
 
 while not rospy.is_shutdown():
     # Capture frame-by-frame
-    print("No. ", num_frames)
+    # print("No. ", num_frames)
     iOCT_frame = bridge.imgmsg_to_cv2(rt.iOCT_image, desired_encoding="bgr8")
     iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
-    cv2.imshow("iOCT_frame", iOCT_frame)
+    # cv2.imshow("iOCT_frame", iOCT_frame)
 
     # save frame
     # iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:06d}".format(num_frames) + ".jpg")
     iOCT_save_name = os.path.join(
-        ep_dir, "iOCT_image_{:.10f}.jpg".format(rt.time_puncture)
+        ep_dir, "iOCT_image_{:.1f}.jpg".format(num_frames)
     )
 
     # write the image
@@ -164,11 +165,15 @@ while not rospy.is_shutdown():
     # save frame
     # iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:06d}".format(num_frames) + ".jpg")
     mask_image_save_name = os.path.join(
-        ep_dir, "mask_image_{:.10f}.jpg".format(rt.time_puncture)
+        ep_dir, "mask_image_{:.1f}.png".format(num_frames)
     )
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
-    cv2.imwrite(mask_image_save_name, mask_image_frame)
+    plt.imshow(mask_image_frame, cmap="gray")
+    plt.savefig(mask_image_save_name)
+    plt.show()
+    plt.close()
+    # cv2.imwrite(mask_image_save_name, mask_image_frame)
 
     # save b_scan
     # b_scan_frame = bridge.imgmsg_to_cv2(rt.b_scan, desired_encoding = 'passthrough')

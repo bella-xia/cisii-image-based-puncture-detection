@@ -72,7 +72,7 @@ if __name__ == "__main__":
         # kal_vely_publisher
         rospy.Publisher("/image_model/KalmanVelY", Float64, queue_size=1),
     ]
-    mask_publisher = rospy.Publisher("PunctureFlagImage", Image, queue_size=1)
+    mask_publisher = rospy.Publisher("/image_model/MaskImage", Image, queue_size=1)
     puncture_flag_publisher = rospy.Publisher(
         "/image_model/PunctureImageFlag", Bool, queue_size=1
     )
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         "/decklink/camera/image_raw", Image, convert_ros_to_numpy
     )
     # TODO get model path
-    segmentation_model_path = "CISII/model_weights/my_model_weights.pth"
+    segmentation_model_path = "model_weights/unet-2.3k-augmented-wbase-wspaceaug.pth"
     image_processor = ImageProcessor(model_path=segmentation_model_path)
 
     rospy.init_node("image_puncture_detection", anonymous=True)
@@ -89,4 +89,4 @@ if __name__ == "__main__":
         numeric_data, mask, flag = image_processor.serialized_processing(iOCT_frame)
         try_publish(numeric_publisher_arr, numeric_data, numeric_publisher_spec)
         try_publish([mask_publisher], [mask])
-        try_publish([puncture_flag_publisher], [flag], "puncture_flag_publisher")
+        try_publish([puncture_flag_publisher], [flag], ["puncture_flag_publisher"])
