@@ -2,8 +2,9 @@
 import cv2, os, time
 from datetime import datetime
 from collections import namedtuple
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend (headless)
 import matplotlib.pyplot as plt
-
 # for ros stuff
 import rospy
 from std_msgs.msg import String, Float64MultiArray, Bool, Float64, Float32, Time

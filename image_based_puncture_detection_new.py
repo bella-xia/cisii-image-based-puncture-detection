@@ -15,8 +15,8 @@ MAX_FRAME= 100
 def convert_ros_to_numpy(image_message):
     global iOCT_frame
 
-    iOCT_frame = image_to_numpy(image_message)
-    iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
+    frame = image_to_numpy(image_message)
+    iOCT_frame = cv2.resize(frame, (640, 480))
 
 
 def try_publish(publishers, data, spec_strs=None):
