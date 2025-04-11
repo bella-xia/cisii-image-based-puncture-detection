@@ -1,21 +1,27 @@
-import time
-import cv2
+# python lib imports
+import time, cv2
+from ultralytics import YOLO
+
+# rospy imports
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool, Float32
-from ultralytics import YOLO
-from image_conversion_without_using_ros import image_to_numpy
-from image_conversion_without_using_ros import numpy_to_image
+
+# self-defined function imports
+from _utils_image.image_conversion_without_using_ros import image_to_numpy
+from _utils_image.image_conversion_without_using_ros import numpy_to_image
 
 global iOCT_frame
 
 PUNCTURE_THRESHOLD = 0.8
+
 
 def convert_ros_to_numpy(image_message):
     global iOCT_frame
 
     iOCT_frame = image_to_numpy(image_message)
     iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
+
 
 def find_and_crop(microscope_image):
     result = needle_det_model(microscope_image)
@@ -32,6 +38,7 @@ def find_and_crop(microscope_image):
     pub_cropped_image.publish(cropped_image_message)
     return cropped_image
 
+
 def detect_puncture(cropped_image):
     # Predict with the model
     results = puncture_det_model(cropped_image)  # predict on an image
@@ -44,7 +51,8 @@ def detect_puncture(cropped_image):
         puncture_flag = False
     return puncture_flag
 
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     # # cropping model
     # needle_det_model = YOLO(
     #     "crop_weights7.pt"  # TODO: change path to trained bounding box model
@@ -55,17 +63,18 @@ if __name__ == "__main__":
     # )
 
     pub_puncture_flag = rospy.Publisher("PunctureFlagImage", Bool, queue_size=1)
-    pub_puncture_prob = rospy.Publisher("PunctureProbabilityImage", Float32, queue_size=1)
+    pub_puncture_prob = rospy.Publisher(
+        "PunctureProbabilityImage", Float32, queue_size=1
+    )
     pub_cropped_image = rospy.Publisher("CroppedImage", Image, queue_size=1)
-    
+
     iOCT_camera_sub = rospy.Subscriber(
         "/decklink/camera/image_raw", Image, convert_ros_to_numpy
     )
 
-    rospy.init_node('image_puncture_detection', anonymous=True)
+    rospy.init_node("image_puncture_detection", anonymous=True)
     time.sleep(0.5)
     while not rospy.is_shutdown():
         # cropped_image = find_and_crop(iOCT_frame)
         # puncture_flag = detect_puncture(cropped_image)
         pub_puncture_flag.publish(False)
-

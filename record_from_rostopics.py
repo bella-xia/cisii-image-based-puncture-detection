@@ -1,28 +1,20 @@
 #!/usr/bin/env python
-import numpy as np
+
+# python lib imports
 import cv2
 import os
 from datetime import datetime
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
-from scipy.spatial.transform import Rotation as R
-
-# from pytransform3d.trajectories import plot_trajectory
 import time
-import math
+import pandas as pd
 
-# for ros stuff
+# ros imports
 import rospy
 import message_filters
 from std_msgs.msg import String, Float64MultiArray, Bool, Float64, Float32, Time
 from geometry_msgs.msg import Vector3, Transform
-from scipy.spatial.transform import Rotation as R
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
-import pandas as pd
 
 # for dynamic reconfiguration of variables
 import dynamic_reconfigure.client

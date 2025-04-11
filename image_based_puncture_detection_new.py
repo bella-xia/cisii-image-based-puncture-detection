@@ -1,15 +1,22 @@
+# python lib imports
 import time, cv2
-from image_based_util_unet import ImageProcessor
 
 # ROS imports
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool, Float32, Float64, Int32
-from image_conversion_without_using_ros import image_to_numpy
+
+# self-defined function imports
+from _utils_model.image_based_util_unet import ImageProcessor
+from _utils_image.image_conversion_without_using_ros import (
+    numpy_to_image,
+    image_to_numpy,
+)
 
 global iOCT_frame
 
-MAX_FRAME= 100
+MAX_FRAME = 100
+DEBUG = False
 
 
 def convert_ros_to_numpy(image_message):
@@ -33,19 +40,19 @@ def try_publish(publishers, data, spec_strs=None):
         if publisher:
             try:
                 publisher.publish(data_instance)
-                # if spec_str:
-                #    print(
-                # #         f"Successfully published to {spec_str}. Expected to publish {data_instance}"
-                #     )
+                if DEBUG and spec_str:
+                    print(f"Successfully published to {spec_str}: {data_instance}")
             except Exception as e:
-                # print(
-                #     f"Failed to publish data {data_instance} at publisher-{spec_str}: {e}"
-                # )
+                if DEBUG:
+                    print(
+                        f"Failed to publish data {data_instance} at publisher-{spec_str}: {e}"
+                    )
                 pass
-        # else:
-        #     print(
-        #         f"Publisher-{spec_str} is not defined, skipping publishing. Expected to publish {data_instance}"
-        #     )
+        else:
+            if DEBUG:
+                print(
+                    f"Publisher-{spec_str} is not defined, skipping publishing. Expected to publish {data_instance}"
+                )
 
 
 if __name__ == "__main__":
@@ -75,10 +82,10 @@ if __name__ == "__main__":
     ]
     mask_publisher = rospy.Publisher("/image_model/MaskImage", Image, queue_size=1)
     puncture_flag_publisher = rospy.Publisher(
-        "/PunctureFlagImage", 
-        # Bool, 
+        "/PunctureFlagImage",
+        # Bool,
         Int32,
-        queue_size=1
+        queue_size=1,
     )
     model_publisher = rospy.Publisher("/image_model/ModelStartFlag", Bool, queue_size=1)
     iOCT_camera_subscriber = rospy.Subscriber(
@@ -91,9 +98,6 @@ if __name__ == "__main__":
     rospy.init_node("image_puncture_detection", anonymous=True)
     time.sleep(0.5)
 
-
-    frame_number = 0
-
     def shutdown_event():
         print("ROS is shutting down. Publishing False.")
         model_publisher.publish(False)
@@ -104,19 +108,15 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             numeric_data, mask, flag = image_processor.serialized_processing(iOCT_frame)
             try_publish(numeric_publisher_arr, numeric_data, numeric_publisher_spec)
-            try_publish([mask_publisher], [mask])
+            mask_msg = numpy_to_image(mask, encoding="mono8")
+            try_publish([mask_publisher], [mask_msg])
             try_publish([puncture_flag_publisher], [flag], ["puncture_flag_publisher"])
-            frame_number += 1
-            # if frame_number == 20:
-            #     model_publisher.publish(False)
-            #     break
-            # else:
             model_publisher.publish(True)
-        
+
         rospy.spin()
-    
+
     except KeyboardInterrupt:
         print("keyboard interrupt. Ending")
-    
+
     finally:
         print("entered finally 2")

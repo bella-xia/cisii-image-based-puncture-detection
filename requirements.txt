@@ -1,0 +1,6 @@
+segmentation_models_pytorch
+albumentations
+scikit-learn
+matplotlib
+pyqtgraph
+PyQt5

@@ -1,18 +1,22 @@
 #!/usr/bin/env python
+
+# python lib imports
 import cv2, os, time
 from datetime import datetime
 from collections import namedtuple
 import matplotlib
-matplotlib.use('Agg')  # Use non-GUI backend (headless)
+
+matplotlib.use("Agg")  # Use non-GUI backend (headless)
 import matplotlib.pyplot as plt
-# for ros stuff
+import pandas as pd
+
+# ros imports
 import rospy
 from std_msgs.msg import String, Float64MultiArray, Bool, Float64, Float32, Time
 from geometry_msgs.msg import Vector3, Transform
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
-import pandas as pd
 
 # init variable
 bridge = CvBridge()
@@ -102,16 +106,6 @@ class ros_topics:
 
         time.sleep(1)
 
-        # do we need to assign these values?
-        # self.vec3_x = None
-        # self.vec3_y = None
-        # self.vec3_z = None
-        # self.rot_x = None
-        # self.rot_y = None
-        # self.rot_w = None
-        # for ros_topic in ROS_SUBSCRIPTION_LIST:
-        #     setattr(ros_topic.assign_attr, self, None)
-
     def main_callback(self, data):
         self.vec3_x = data.translation.x
         self.vec3_y = data.translation.y
@@ -151,7 +145,9 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
     iOCT_frame = cv2.resize(iOCT_frame, (640, 480))
 
     # save frame
-    iOCT_save_name = os.path.join(ep_dir, "iOCT_image_{:.10f}.jpg".format(rt.time_puncture))
+    iOCT_save_name = os.path.join(
+        ep_dir, "iOCT_image_{:.10f}.jpg".format(rt.time_puncture)
+    )
 
     # write the image
     # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)

@@ -5,7 +5,7 @@ import time
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool, Float32
-from image_conversion_without_using_ros import image_to_numpy
+from _utils_image.image_conversion_without_using_ros import image_to_numpy
 import numpy as np
 import torch
 import csv
@@ -15,6 +15,7 @@ PUNCTURE_THRESHOLD = 0.8
 needle_det_model = YOLO("crop_weights7.pt")
 
 puncture_det_model = YOLO("classification_weights.pt")
+
 
 def find_and_crop(image):
     start = time.perf_counter()
@@ -30,6 +31,7 @@ def find_and_crop(image):
     cropped_image = cv2.imread(image)[y1:y2, x1:x2]
     return cropped_image
 
+
 def detect_puncture(cropped_image):
     # Predict with the model
     results = puncture_det_model(cropped_image)  # predict on an image
@@ -44,10 +46,12 @@ def detect_puncture(cropped_image):
 
 import re
 
-def natural_sort(l): 
+
+def natural_sort(l):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
     return sorted(l, key=alphanum_key)
+
 
 # Define the test folder path
 test_folders = "_recordings/Egg06_04_TP_good_quality"
@@ -55,17 +59,17 @@ test_folders = "_recordings/Egg06_04_TP_good_quality"
 # # Iterate through folders in the test folder
 # for folder in os.listdir(test_folders):
 #     folder_path = os.path.join(test_folders, folder)
-    
+
 #     if os.path.isdir(folder_path):  # Ensure it's a directory
 #         # Create a CSV file for each folder
 #         csv_filename = f"{folder}_puncture_detection_results.csv"
 #         csv_filepath = os.path.join(test_folders, csv_filename)
-        
+
 #         with open(csv_filepath, mode='w', newline='') as csv_file:
 #             # Define the CSV writer
 #             fieldnames = ['image_path', 'puncture_flag']
 #             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            
+
 #             # Write the header
 #             writer.writeheader()
 
@@ -81,20 +85,20 @@ test_folders = "_recordings/Egg06_04_TP_good_quality"
 
 #                     # Write the result to the folder-specific CSV file
 #                     writer.writerow({'image_path': image_path, 'puncture_flag': puncture_flag})
-        
+
 
 folder = "Egg06_04_TP_good_quality"
-    
+
 if os.path.isdir(test_folders):  # Ensure it's a directory
     # Create a CSV file for each folder
     csv_filename = f"test_puncture_detection_results.csv"
     csv_filepath = os.path.join(csv_filename)
-    
-    with open(csv_filepath, mode='w', newline='') as csv_file:
+
+    with open(csv_filepath, mode="w", newline="") as csv_file:
         # Define the CSV writer
-        fieldnames = ['image_path', 'puncture_flag']
+        fieldnames = ["image_path", "puncture_flag"]
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-        
+
         # Write the header
         writer.writeheader()
 
@@ -109,9 +113,11 @@ if os.path.isdir(test_folders):  # Ensure it's a directory
                 puncture_flag = detect_puncture(cropped_image)
 
                 # Write the result to the folder-specific CSV file
-                writer.writerow({'image_path': image_path, 'puncture_flag': puncture_flag})
+                writer.writerow(
+                    {"image_path": image_path, "puncture_flag": puncture_flag}
+                )
                 break
-            
+
 
 # for image_file_name in os.listdir("path/to/images/folder"):
 #     image = cv2.imread("path/to/images/folder/" + image_file_name)
