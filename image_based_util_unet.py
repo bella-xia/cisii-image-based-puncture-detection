@@ -17,9 +17,10 @@ class ImageProcessor:
         model_path,
         img_w=640,
         img_h=480,
-        outlier=60,
-        y_border=430,
-        numeric_threshold=10,
+        outlier=1000,
+        y_border=460,
+        numeric_threshold=20,
+        stop_robot_after_detection = 2, # unit of seconds
         rate_threshold=None,
         mode="velocity",
     ):
@@ -63,7 +64,8 @@ class ImageProcessor:
         self.kpx, self.kpy = img_w, img_h
         self.img_w, self.img_h = img_w, img_h
 
-        self.first_n = 0
+        self.first_n, self.detected = 0, 0
+        self.stop_robot_after_detection = stop_robot_after_detection
         self.outlier, self.y_border = outlier, y_border
         self.numeric_threshold = numeric_threshold
         self.rate_threshold = rate_threshold
@@ -122,20 +124,23 @@ class ImageProcessor:
             self.protection_mode = True
         else:
             dx_t, dy_t = px_t - self.px, py_t - self.py
-            sign = 1 if (dx_t < 0 and dy_t < 0) else -1
+            sign = 1 
+            # if (dx_t < 0 and dy_t < 0) else -1
             ds_t = sign * np.sqrt(dx_t**2 + dy_t**2)
 
         if self.protection_mode:
             self.first_n += 1
-            if self.first_n > 90:
+            if self.first_n > 30:
                 self.protection_mode = False
-                self.first_n = -1
+                self.first_n = 0
 
         kdx_t, kdy_t = kpx_t - self.kpx, kpy_t - self.kpy
-        sign = 1 if (kdx_t < 0 and kdy_t < 0) else -1
+        sign = 1 
+        # if (kdx_t < 0 and kdy_t < 0) else -1
         kds_t = sign * np.sqrt(kdx_t**2 + kdy_t**2)
         kvx_t, kvy_t = x_update[1], x_update[3]
-        sign = 1 if (kvx_t < 0 and kvy_t < 0) else -1
+        sign = 1 
+        # if (kvx_t < 0 and kvy_t < 0) else -1
         kv_t = sign * np.sqrt(kvx_t**2 + kvy_t**2)
 
         if self.rate_threshold:
@@ -146,7 +151,16 @@ class ImageProcessor:
             elif self.mode == "velocity":
                 self.ds_arr.append(kv_t)
 
-        if (
+        if self.puncture_detect:
+            self.detected += 1
+            if self.detected > 30 * self.stop_robot_after_detection:
+                self.puncture_detect = False
+                puncture_flag = False
+                self.protection_mode = True
+                self.first_n = 0
+            else:
+                puncture_flag = True
+        elif (
             not self.protection_mode
             and max([ds_t, kds_t, kv_t]) < self.outlier
             and (not self.rate_threshold or len(self.ds_arr) > 2)
@@ -161,16 +175,18 @@ class ImageProcessor:
                 identifier = kv_t
 
             if (
-                not self.puncture_detect
-                and identifier > self.numeric_threshold
-                and (
-                    not self.rate_threshold
-                    or identifier
-                    > statistics.mean(self.ds_arr[:-1]) * self.rate_threshold
-                )
+                # not self.puncture_detect and 
+                identifier > self.numeric_threshold
+                # and (
+                #     not self.rate_threshold
+                #     or identifier
+                #     > statistics.mean(self.ds_arr[:-1]) * self.rate_threshold
+                # )
             ):
                 self.puncture_detect = True
                 puncture_flag = True
+                self.detected = 0
+
 
         self.px, self.py = px_t, py_t
         self.kpx, self.kpy = kpx_t, kpy_t
@@ -184,5 +200,5 @@ class ImageProcessor:
                 float(x_update[3]),
             ],
             mask_msg,
-            puncture_flag,
+            1 if puncture_flag else 0
         )

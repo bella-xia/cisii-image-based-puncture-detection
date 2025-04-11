@@ -59,8 +59,9 @@ ROS_SUBSCRIPTION_LIST = [
     ),
     # Bella Hanbei
     RosTopic(
-        "PunctureFlagImage",
-        Bool,
+        "/PunctureFlagImage",
+        # Bool,
+        Int32,
         "puncture_image_flag_sub",
         "puncture_image_flag",
     ),

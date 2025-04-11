@@ -75,7 +75,10 @@ if __name__ == "__main__":
     ]
     mask_publisher = rospy.Publisher("/image_model/MaskImage", Image, queue_size=1)
     puncture_flag_publisher = rospy.Publisher(
-        "PunctureFlagImage", Bool, queue_size=1
+        "/PunctureFlagImage", 
+        # Bool, 
+        Int32,
+        queue_size=1
     )
     model_publisher = rospy.Publisher("/image_model/ModelStartFlag", Bool, queue_size=1)
     iOCT_camera_subscriber = rospy.Subscriber(
