@@ -1,5 +1,7 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtWidgets, QtCore
+from PyQt5.QtWidgets import QGraphicsRectItem
+from PyQt5.QtGui import QBrush, QColor
 import numpy as np
 
 
@@ -30,8 +32,19 @@ class VisualizationModulePG:
         self.scatter_mask = pg.ScatterPlotItem(
             pen=pg.mkPen(None), brush=pg.mkBrush("r"), size=10
         )
+
         view1.addItem(self.scatter_px)
         view2.addItem(self.scatter_mask)
+        self.label = pg.TextItem(text="No Puncture", color="green", anchor=(0.5, 0.5))
+        view2.addItem(self.label)
+        self.label.setPos(75, 100)
+
+        self.bounding_box = QGraphicsRectItem(50, 50, 100, 20)
+        self.bounding_box.setPen(pg.mkPen(color="green", width=2))
+        green_qcolor = QColor("green")
+        green_qcolor.setAlpha(255)
+        self.bounding_box.setBrush(QBrush(green_qcolor))
+        view2.addItem(self.bounding_box)
 
         # Real-time plots
         self.plots = []
@@ -73,7 +86,6 @@ class VisualizationModulePG:
         mask = (mask * 255).astype(np.uint8)
         mask = np.transpose(np.flipud(mask), (1, 0))
 
-        
         self.image_view.setImage(image, autoLevels=False)  # OpenCV image is transposed
         self.mask_view.setImage(mask, autoLevels=False)
 
@@ -127,9 +139,7 @@ class VisualizationModulePG:
             self.lines[i][2].setData(
                 self.x_data[-data_len:], self.y_data[i * 3 + 2][-data_len:]
             )
-        self.lines[-1][3].setData(
-            self.x_data[-data_len:], self.y_data[-1][-data_len:]
-            )
+        self.lines[-1][3].setData(self.x_data[-data_len:], self.y_data[-1][-data_len:])
 
 
 # Example use:

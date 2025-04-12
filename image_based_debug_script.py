@@ -5,9 +5,7 @@ from pyqtgraph.Qt import QtWidgets, QtGui, QtCore
 
 # self-defined functions imports
 from _utils_model.image_based_util_unet import ImageProcessor
-from _utils_model.image_based_util_visualization import VisualizationModule
 from _utils_model.image_based_util_visualization_v2 import VisualizationModulePG
-from _utils_rospy.publisher_module import PubRosTopic, RosTopicPublisher
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -42,13 +40,13 @@ if __name__ == "__main__":
     visual = VisualizationModulePG()
 
     try:
-        for img_dir in tqdm(sorted_img_dir[900:]):
+        for img_dir in tqdm(sorted_img_dir[1000:]):
             timestamp = float(img_dir.split("_")[-1].split(".jpg")[0])
             img_path = os.path.join(IMG_PATH, img_dir)
             img = cv2.imread(img_path)
             cv_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            numeric_data, mask, flag = processor.serialized_processing(cv_img)
-            visual.add_data(cv_img, mask, numeric_data)
+            numeric_data, mask, flag, ka_t = processor.serialized_processing(cv_img)
+            visual.add_data(cv_img, mask, numeric_data + [ka_t])
             QtWidgets.QApplication.processEvents()
     except KeyboardInterrupt:
         print("Keyboard interrupt, exiting...")

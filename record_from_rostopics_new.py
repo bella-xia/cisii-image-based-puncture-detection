@@ -4,19 +4,14 @@
 import cv2, os, time
 from datetime import datetime
 from collections import namedtuple
-import matplotlib
-
-matplotlib.use("Agg")  # Use non-GUI backend (headless)
-import matplotlib.pyplot as plt
 import pandas as pd
 
 # ros imports
 import rospy
-from std_msgs.msg import String, Float64MultiArray, Bool, Float64, Float32, Time
+from sensor_msgs.msg import Image
+from std_msgs.msg import String, Float64MultiArray, Bool, Float64, Float32, Time, Int32
 from geometry_msgs.msg import Vector3, Transform
 from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
-from std_msgs.msg import Int32
 
 # init variable
 bridge = CvBridge()
@@ -30,7 +25,7 @@ RosTopic = namedtuple(
 ROS_SUBSCRIPTION_LIST = [
     # RosTopic("/eye_robot/FrameEE", Transform, lambda _: None),
     RosTopic("/decklink/camera/image_raw", Image, "iOCT_camera_sub", "iOCT_image"),
-    RosTopic("/oct_b_scan", Image, "b_scan_sub", "b_scan"),
+    RosTopic("/b_scan/top_frame", Image, "b_scan_sub", "b_scan"),
     RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
     RosTopic(
         "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
@@ -172,16 +167,20 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
     cv2.imwrite(mask_image_save_name, mask_image_frame)
 
     # save b_scan
-    b_scan_frame = bridge.imgmsg_to_cv2(rt.b_scan, desired_encoding = 'passthrough')
+    b_scan_frame = bridge.imgmsg_to_cv2(rt.b_scan, desired_encoding="passthrough")
     b_scan_frame = cv2.resize(b_scan_frame, (640, 480))
     # cv2.imshow('b_scan_frame', b_scan_frame)
 
     # save frame
     # b_scan_save_name = os.path.join(ep_dir, "b_scan_{:06d}".format(num_frames) + ".jpg")
-    b_scan_save_name = os.path.join(ep_dir, "b_scan_{:.10f}.jpg".format(rt.time_puncture))
+    b_scan_save_name = os.path.join(
+        ep_dir, "b_scan_{:.10f}.jpg".format(rt.time_puncture)
+    )
 
     # # write the image
-    cv2.imwrite(b_scan_save_name, b_scan_frame) # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
+    cv2.imwrite(
+        b_scan_save_name, b_scan_frame
+    )  # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
 
     num_frames = num_frames + 1
 

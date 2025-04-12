@@ -18,7 +18,7 @@ class ImageProcessor:
         outlier=10000,
         y_border=480,
         velocity_threshold=20,
-        acceleration_threshod = 10,
+        acceleration_threshod=10,
         stop_robot_after_detection=1,  # unit of seconds
         rate_threshold=None,
         mode="velocity",
@@ -67,7 +67,10 @@ class ImageProcessor:
         self.first_n, self.detected = 0, 0
         self.stop_robot_after_detection = stop_robot_after_detection
         self.outlier, self.y_border = outlier, y_border
-        self.velocity_threshold, self.acceleration_threshold = velocity_threshold, acceleration_threshod
+        self.velocity_threshold, self.acceleration_threshold = (
+            velocity_threshold,
+            acceleration_threshod,
+        )
         self.rate_threshold = rate_threshold
 
     def generate_auxiliary_data(self, image):
@@ -158,7 +161,7 @@ class ImageProcessor:
                 puncture_flag = True
         elif (
             # not self.protection_mode
-            # and 
+            # and
             max([ds_t, kds_t, kv_t]) < self.outlier
             and (not self.rate_threshold or len(self.ds_arr) > 2)
         ):
@@ -173,8 +176,7 @@ class ImageProcessor:
 
             if (
                 # not self.puncture_detect and
-                identifier
-                > self.velocity_threshold
+                identifier > self.velocity_threshold
                 and ka_t > self.acceleration_threshold
                 # and (
                 #     not self.rate_threshold
@@ -201,5 +203,5 @@ class ImageProcessor:
             ],
             mask_msg,
             1 if puncture_flag else 0,
-            ka_t
+            ka_t,
         )
