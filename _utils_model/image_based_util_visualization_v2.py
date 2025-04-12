@@ -13,12 +13,16 @@ class VisualizationModulePG:
         # Image views
         self.image_view = pg.ImageItem()
         self.mask_view = pg.ImageItem()
+        self.bscan_view = pg.ImageItem()
 
         view1 = self.win.addViewBox(row=0, col=0)
         view1.addItem(self.image_view)
 
         view2 = self.win.addViewBox(row=0, col=1)
         view2.addItem(self.mask_view)
+
+        view3 = self.win.addViewBox(row=0, col=2)
+        view3.addItem(self.bscan_view)
 
         self.scatter_px = pg.ScatterPlotItem(
             pen=pg.mkPen(None), brush=pg.mkBrush("r"), size=10
@@ -40,20 +44,23 @@ class VisualizationModulePG:
             p.addLegend()
             self.plots.append(p)
 
-            self.lines[col].append(p.plot(pen="b", name="x"))
+            self.lines[col].append(p.plot(pen="y", name="x"))
             self.lines[col].append(p.plot(pen="r", name="y"))
             self.lines[col].append(p.plot(pen="g", name="mag"))
+        self.lines[-1].append(p.plot(pen="w", name="acc"))
 
         self.x_data = []
-        self.y_data = [[] for _ in range(9)]
-        self.pos_data = [[640], [480], [640], [480]]
+        self.y_data = [[] for _ in range(10)]
+        self.pos_data = [[640], [480], [640], [480], [0]]
         self.num_frames = 0
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(1)
 
-    def add_data(self, image, mask, data):
+    def add_data(self, image, mask, data, bscan=None):
+
+        px, py, kpx, kpy, vx, vy, ka = data
 
         if image.dtype == np.float32 or image.dtype == np.float64:
             image = (
@@ -66,9 +73,14 @@ class VisualizationModulePG:
         mask = (mask * 255).astype(np.uint8)
         mask = np.transpose(np.flipud(mask), (1, 0))
 
-        px, py, kpx, kpy, vx, vy = data
+        
         self.image_view.setImage(image, autoLevels=False)  # OpenCV image is transposed
         self.mask_view.setImage(mask, autoLevels=False)
+
+        if bscan is not None:
+            bscan = bscan.astype(np.uint8)
+            bscan = np.transpose(np.flipud(bscan), (1, 0))
+            self.bscan_view.setImage(bscan)
 
         self.scatter_px.setData([px], [480 - py])
         self.scatter_mask.setData([px], [480 - py])
@@ -80,6 +92,7 @@ class VisualizationModulePG:
         dp_avg = np.sqrt(dpx**2 + dpy**2)
         dkp_avg = np.sqrt(dkpx**2 + dkpy**2)
         v_avg = np.sqrt(vx**2 + vy**2)
+        a_avg = ka
 
         self.x_data.append(self.num_frames)
         self.num_frames += 1
@@ -93,9 +106,11 @@ class VisualizationModulePG:
         self.y_data[6].append(vx)
         self.y_data[7].append(vy)
         self.y_data[8].append(v_avg)
+        self.y_data[9].append(a_avg)
 
         for i in range(4):
             self.pos_data[i].append(data[i])
+        self.pos_data[-1].append(abs(v_avg))
 
     def update(self):
         if not self.x_data:
@@ -111,6 +126,9 @@ class VisualizationModulePG:
             )
             self.lines[i][2].setData(
                 self.x_data[-data_len:], self.y_data[i * 3 + 2][-data_len:]
+            )
+        self.lines[-1][3].setData(
+            self.x_data[-data_len:], self.y_data[-1][-data_len:]
             )
 
 

@@ -27,12 +27,12 @@ class RosTopicPublisher:
             for rostopic_instance in self.ros_publisher_list
         }
 
-        for ros_topic in self.ros_subcription_list:
+        for ros_topic in self.ros_publisher_list:
             setattr(
                 self,
                 ros_topic.publisher_attr,
                 rospy.Publisher(
-                    ros_topic.published, ros_topic.message_type, queue_size=1
+                    ros_topic.published_topic, ros_topic.message_type, queue_size=1
                 ),
             )
 
@@ -44,7 +44,7 @@ class RosTopicPublisher:
         elif rospy_type == Bool:
             return bool
         elif rospy_type == Image:
-            return np.ndarray
+            return Image
 
         print(f"Unknown rospy type: {rospy_type}. Defaulting to any.")
         return any
@@ -55,17 +55,6 @@ class RosTopicPublisher:
             publisher = getattr(self, publisher_attr, None)
             if publisher_attr and publisher_type and publisher:
                 try:
-                    if isinstance(data_instance, publisher_type):
-                        publisher.publish(data_instance)
-                    elif isinstance(data_instance, float) and publisher_type == int:
-                        # if there is a float-int mismatch, can be fixed by casting
-                        publisher.publish(int(data_instance))
-                    elif isinstance(data_instance, int) and publisher_type == float:
-                        publisher.publish(float(data_instance))
-                    else:
-                        print(
-                            f"unmachiing data type: expected {publisher_type}, got {type(data_instance)}"
-                        )
                     publisher.publish(data_instance)
                 except Exception as e:
                     print(f"Failed to publish data {data_instance}: {e}")

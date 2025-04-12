@@ -15,10 +15,11 @@ class ImageProcessor:
         model_path,
         img_w=640,
         img_h=480,
-        outlier=1000,
-        y_border=460,
-        numeric_threshold=20,
-        stop_robot_after_detection=2,  # unit of seconds
+        outlier=10000,
+        y_border=480,
+        velocity_threshold=20,
+        acceleration_threshod = 10,
+        stop_robot_after_detection=1,  # unit of seconds
         rate_threshold=None,
         mode="velocity",
     ):
@@ -31,7 +32,7 @@ class ImageProcessor:
         self.model = smp.Unet("resnet18", encoder_weights="imagenet", classes=1)
         # TODO: try to load the model with GPU
         self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
-        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() eldse "cpu")
         self.device = torch.device("cpu")
         self.model.to(self.device)
         self.model.eval()
@@ -60,12 +61,13 @@ class ImageProcessor:
 
         self.px, self.py = img_w, img_h
         self.kpx, self.kpy = img_w, img_h
+        self.vel = 0
         self.img_w, self.img_h = img_w, img_h
 
         self.first_n, self.detected = 0, 0
         self.stop_robot_after_detection = stop_robot_after_detection
         self.outlier, self.y_border = outlier, y_border
-        self.numeric_threshold = numeric_threshold
+        self.velocity_threshold, self.acceleration_threshold = velocity_threshold, acceleration_threshod
         self.rate_threshold = rate_threshold
 
     def generate_auxiliary_data(self, image):
@@ -107,7 +109,7 @@ class ImageProcessor:
             self.protection_mode = False
             self.first_n = 0
 
-            return [px_t, py_t, -1, -1, -1, -1], mask_msg, False
+            return [px_t, py_t, -1, -1, -1, -1], mask_msg, 0, -1
 
         x_update = self.kalman.filter_instance(np.array([px_t, py_t]))
         kpx_t, kpy_t = x_update[0], x_update[2]
@@ -117,10 +119,10 @@ class ImageProcessor:
             # first instance where the needle appears
             # go to protection mode
             self.protection_mode = True
+            ds_t = 0
         else:
             dx_t, dy_t = px_t - self.px, py_t - self.py
-            sign = 1
-            # if (dx_t < 0 and dy_t < 0) else -1
+            sign = 1 if (dx_t < 0 and dy_t < 0) else -1
             ds_t = sign * np.sqrt(dx_t**2 + dy_t**2)
 
         if self.protection_mode:
@@ -130,13 +132,12 @@ class ImageProcessor:
                 self.first_n = 0
 
         kdx_t, kdy_t = kpx_t - self.kpx, kpy_t - self.kpy
-        sign = 1
-        # if (kdx_t < 0 and kdy_t < 0) else -1
+        sign = 1 if (kdx_t < 0 and kdy_t < 0) else -1
         kds_t = sign * np.sqrt(kdx_t**2 + kdy_t**2)
         kvx_t, kvy_t = x_update[1], x_update[3]
-        sign = 1
-        # if (kvx_t < 0 and kvy_t < 0) else -1
+        sign = 1 if (kvx_t < 0 and kvy_t < 0) else -1
         kv_t = sign * np.sqrt(kvx_t**2 + kvy_t**2)
+        ka_t = abs(kv_t) - self.vel
 
         if self.rate_threshold:
             if self.mode == "normal":
@@ -156,8 +157,9 @@ class ImageProcessor:
             else:
                 puncture_flag = True
         elif (
-            not self.protection_mode
-            and max([ds_t, kds_t, kv_t]) < self.outlier
+            # not self.protection_mode
+            # and 
+            max([ds_t, kds_t, kv_t]) < self.outlier
             and (not self.rate_threshold or len(self.ds_arr) > 2)
         ):
 
@@ -172,7 +174,8 @@ class ImageProcessor:
             if (
                 # not self.puncture_detect and
                 identifier
-                > self.numeric_threshold
+                > self.velocity_threshold
+                and ka_t > self.acceleration_threshold
                 # and (
                 #     not self.rate_threshold
                 #     or identifier
@@ -180,11 +183,13 @@ class ImageProcessor:
                 # )
             ):
                 self.puncture_detect = True
+                print("puncture detected")
                 puncture_flag = True
                 self.detected = 0
 
         self.px, self.py = px_t, py_t
         self.kpx, self.kpy = kpx_t, kpy_t
+        self.vel = abs(kv_t)
         return (
             [
                 px_t,
@@ -196,4 +201,5 @@ class ImageProcessor:
             ],
             mask_msg,
             1 if puncture_flag else 0,
+            ka_t
         )
