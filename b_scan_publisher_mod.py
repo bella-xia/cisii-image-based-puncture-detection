@@ -17,19 +17,25 @@ if __name__ == "__main__":
         zd=3.379,
     )
 
-    b_scan_publisher = rospy.Publisher("/oct_b_scan", Image, queue_size=1)
+    bscan_top_publisher = rospy.Publisher("/b_scan/top_frame", Image, queue_size=1)
+    bscan_bottom_publisher = rospy.Publisher(
+        "/b_scan/bottom_frame", Image, queue_size=1
+    )
     cv_bridge = CvBridge()
     rospy.init_node("b_scan_publisher", anonymous=True)
     print("B scan publisher initialized")
 
     try:
         while not rospy.is_shutdown():
-            # print("in the loop")
-            b_scan_img = leica_reader.get_b_scan(frame_to_save=0)
-            if not b_scan_img is None:
-                # print("here")
-                image_message = cv_bridge.cv2_to_imgmsg(b_scan_img * 255)
-                b_scan_publisher.publish(image_message)
+            b_scan_top_img = leica_reader.get_b_scan(frame_to_save=0)
+            if not b_scan_top_img is None:
+                top_msg = cv_bridge.cv2_to_imgmsg(b_scan_top_img * 255)
+                bscan_top_publisher.publish(top_msg)
+            b_scan_bottom_img = leica_reader.get_b_scan(frame_to_save=1)
+            if not b_scan_bottom_img is None:
+                bottom_msg = cv_bridge.cv2_to_imgmsg(b_scan_bottom_img * 255)
+                bscan_bottom_publisher.publish(bottom_msg)
+
     except KeyboardInterrupt:
         print("Shutting down b scan publisher")
     finally:

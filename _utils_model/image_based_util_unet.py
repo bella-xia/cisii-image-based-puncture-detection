@@ -17,7 +17,7 @@ class ImageProcessor:
         img_h=480,
         outlier=10000,
         y_border=480,
-        velocity_threshold=20,
+        velocity_threshold=22,
         acceleration_threshod=10,
         stop_robot_after_detection=1,  # unit of seconds
         rate_threshold=None,
@@ -112,7 +112,7 @@ class ImageProcessor:
             self.protection_mode = False
             self.first_n = 0
 
-            return [px_t, py_t, -1, -1, -1, -1], mask_msg, 0, -1
+            return [px_t, py_t, -1, -1, -1, -1], mask_msg, 0, -1, -1
 
         x_update = self.kalman.filter_instance(np.array([px_t, py_t]))
         kpx_t, kpy_t = x_update[0], x_update[2]
@@ -125,7 +125,8 @@ class ImageProcessor:
             ds_t = 0
         else:
             dx_t, dy_t = px_t - self.px, py_t - self.py
-            sign = 1 if (dx_t < 0 and dy_t < 0) else -1
+            sign = 1 if (dy_t < 0) else -1
+            # if (dx_t < 0 and dy_t < 0) else -1
             ds_t = sign * np.sqrt(dx_t**2 + dy_t**2)
 
         if self.protection_mode:
@@ -135,10 +136,12 @@ class ImageProcessor:
                 self.first_n = 0
 
         kdx_t, kdy_t = kpx_t - self.kpx, kpy_t - self.kpy
-        sign = 1 if (kdx_t < 0 and kdy_t < 0) else -1
+        sign = 1 if (kdy_t < 0) else -1
+        # if (kdx_t < 0 and kdy_t < 0) else -1
         kds_t = sign * np.sqrt(kdx_t**2 + kdy_t**2)
         kvx_t, kvy_t = x_update[1], x_update[3]
-        sign = 1 if (kvx_t < 0 and kvy_t < 0) else -1
+        sign = 1 if (kvy_t < 0) else -1
+        # if (kvx_t < 0 and kvy_t < 0) else -1
         kv_t = sign * np.sqrt(kvx_t**2 + kvy_t**2)
         ka_t = abs(kv_t) - self.vel
 
@@ -159,12 +162,13 @@ class ImageProcessor:
                 self.first_n = 0
             else:
                 puncture_flag = True
-        elif (
-            # not self.protection_mode
-            # and
-            max([ds_t, kds_t, kv_t]) < self.outlier
-            and (not self.rate_threshold or len(self.ds_arr) > 2)
-        ):
+        # elif (
+        #     # not self.protection_mode
+        #     # and
+        #     max([ds_t, kds_t, kv_t]) < self.outlier
+        #     and (not self.rate_threshold or len(self.ds_arr) > 2)
+        # ):
+        else:
 
             identifier = 0
             if self.mode == "normal":
@@ -185,9 +189,11 @@ class ImageProcessor:
                 # )
             ):
                 self.puncture_detect = True
-                print("puncture detected")
+                print(f"puncture detected: {identifier}, {ka_t}")
                 puncture_flag = True
                 self.detected = 0
+            # else:
+            #     print(f"no puncture detected: {identifier}, {ka_t}")
 
         self.px, self.py = px_t, py_t
         self.kpx, self.kpy = kpx_t, kpy_t
@@ -203,5 +209,6 @@ class ImageProcessor:
             ],
             mask_msg,
             1 if puncture_flag else 0,
+            kv_t,
             ka_t,
         )

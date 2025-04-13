@@ -25,7 +25,7 @@ RosTopic = namedtuple(
 ROS_SUBSCRIPTION_LIST = [
     # RosTopic("/eye_robot/FrameEE", Transform, lambda _: None),
     RosTopic("/decklink/camera/image_raw", Image, "iOCT_camera_sub", "iOCT_image"),
-    RosTopic("/b_scan/top_frame", Image, "b_scan_sub", "b_scan"),
+    RosTopic("/oct_b_scan", Image, "b_scan_sub", "b_scan"),
     RosTopic("/eye_robot/TipForceNormGlobal", Float64, "F_tip_sub", "F_tip"),
     RosTopic(
         "/eye_robot/TipForceNormEMA_Global", Float64, "F_tip_EMA_sub", "F_tip_EMA"
@@ -100,6 +100,7 @@ class ros_topics:
             )
 
         time.sleep(1)
+        self.b_scan = None
 
     def main_callback(self, data):
         self.vec3_x = data.translation.x
@@ -166,21 +167,22 @@ while (not rospy.is_shutdown()) and rt.model_start_flag:
     # plt.close()
     cv2.imwrite(mask_image_save_name, mask_image_frame)
 
-    # save b_scan
-    b_scan_frame = bridge.imgmsg_to_cv2(rt.b_scan, desired_encoding="passthrough")
-    b_scan_frame = cv2.resize(b_scan_frame, (640, 480))
-    # cv2.imshow('b_scan_frame', b_scan_frame)
+    # sav b_scan
+    if rt.b_scan is not None:
+        b_scan_frame = bridge.imgmsg_to_cv2(rt.b_scan, desired_encoding="passthrough")
+        b_scan_frame = cv2.resize(b_scan_frame, (640, 480))
+        # cv2.imshow('b_scan_frame', b_scan_frame)
 
-    # save frame
-    # b_scan_save_name = os.path.join(ep_dir, "b_scan_{:06d}".format(num_frames) + ".jpg")
-    b_scan_save_name = os.path.join(
-        ep_dir, "b_scan_{:.10f}.jpg".format(rt.time_puncture)
-    )
+        # save frame
+        # b_scan_save_name = os.path.join(ep_dir, "b_scan_{:06d}".format(num_frames) + ".jpg")
+        b_scan_save_name = os.path.join(
+            ep_dir, "b_scan_{:.10f}.jpg".format(rt.time_puncture)
+        )
 
-    # # write the image
-    cv2.imwrite(
-        b_scan_save_name, b_scan_frame
-    )  # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
+        # # write the image
+        cv2.imwrite(
+            b_scan_save_name, b_scan_frame
+        )  # UNCOMMENT ME WHEN DEBUGGING IS OVER (early)
 
     num_frames = num_frames + 1
 

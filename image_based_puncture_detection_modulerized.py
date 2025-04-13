@@ -76,7 +76,8 @@ if __name__ == "__main__":
         ]
     )
 
-    segmentation_model_path = "_model_weights/unet-2.3k-augmented-wbase-wspaceaug.pth"
+    segmentation_model_path = "_model_weights/unet-2.3k-augmented-wbase.pth"
+    # -wspaceaug.pth"
     image_processor = ImageProcessor(model_path=segmentation_model_path)
 
     rospy.init_node("image_puncture_detection", anonymous=True)
@@ -95,14 +96,14 @@ if __name__ == "__main__":
             bscan  = subscriber_manager.get_data("bscan_frame")
             bscan = image_to_numpy(bscan) if bscan is not None else None
             image = cv2.resize(image, (640, 480))
-            numeric_data, mask, flag, acc = image_processor.serialized_processing(image)
+            numeric_data, mask, flag, vel, acc = image_processor.serialized_processing(image)
             publisher_manager.publish_data(IMAGE_MODEL_DATA_PUBLISHER, numeric_data)
             publisher_manager.publish_data(
                 ["mask_publisher"], [numpy_to_image((mask * 255).astype(np.uint8), encoding="mono8")]
             )
             publisher_manager.publish_data(["flag_publisher"], [flag])
             publisher_manager.publish_data(["starter_publisher"], [True])
-            visual.add_data(image, mask, numeric_data + [acc], bscan=bscan)
+            visual.add_data(image, mask, numeric_data + [vel, acc], bscan=bscan, flag=(flag == 1))
             QtWidgets.QApplication.processEvents()
         rospy.spin()
 

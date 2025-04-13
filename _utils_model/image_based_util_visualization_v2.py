@@ -57,8 +57,8 @@ class VisualizationModulePG:
             p.addLegend()
             self.plots.append(p)
 
-            self.lines[col].append(p.plot(pen="y", name="x"))
-            self.lines[col].append(p.plot(pen="r", name="y"))
+            # self.lines[col].append(p.plot(pen="y", name="x"))
+            # self.lines[col].append(p.plot(pen="r", name="y"))
             self.lines[col].append(p.plot(pen="g", name="mag"))
         self.lines[-1].append(p.plot(pen="w", name="acc"))
 
@@ -71,9 +71,10 @@ class VisualizationModulePG:
         self.timer.timeout.connect(self.update)
         self.timer.start(1)
 
-    def add_data(self, image, mask, data, bscan=None):
+    def add_data(self, image, mask, data, bscan=None,
+                flag=False):
 
-        px, py, kpx, kpy, vx, vy, ka = data
+        px, py, kpx, kpy, vx, vy, kv, ka = data
 
         if image.dtype == np.float32 or image.dtype == np.float64:
             image = (
@@ -89,13 +90,30 @@ class VisualizationModulePG:
         self.image_view.setImage(image, autoLevels=False)  # OpenCV image is transposed
         self.mask_view.setImage(mask, autoLevels=False)
 
+        if not flag:
+            instance_color = "green"
+            instance_text = "No Puncture"
+        else:
+            instance_color = "red"
+            instance_text = "Puncture"
+        qcolor = QColor(instance_color)
+        qcolor.setAlpha(255)
+        self.bounding_box.setPen(pg.mkPen(color=instance_color, width=2))
+        self.bounding_box.setBrush(QBrush(qcolor))
+        self.label.setColor(instance_color)
+        self.label.setText(instance_text)
+
         if bscan is not None:
             bscan = bscan.astype(np.uint8)
             bscan = np.transpose(np.flipud(bscan), (1, 0))
             self.bscan_view.setImage(bscan)
 
-        self.scatter_px.setData([px], [480 - py])
-        self.scatter_mask.setData([px], [480 - py])
+        if px != -1 and py != -1:
+            self.scatter_px.setData([px], [480 - py])
+            self.scatter_mask.setData([px], [480 - py])
+        else:
+           self.scatter_px.setData([], [])
+           self.scatter_mask.setData([], [])
 
         dpx = px - self.pos_data[0][-1]
         dpy = py - self.pos_data[1][-1]
@@ -103,7 +121,7 @@ class VisualizationModulePG:
         dkpy = kpy - self.pos_data[3][-1]
         dp_avg = np.sqrt(dpx**2 + dpy**2)
         dkp_avg = np.sqrt(dkpx**2 + dkpy**2)
-        v_avg = np.sqrt(vx**2 + vy**2)
+        v_avg = kv
         a_avg = ka
 
         self.x_data.append(self.num_frames)
@@ -130,16 +148,16 @@ class VisualizationModulePG:
 
         data_len = min(50, len(self.x_data))
         for i in range(3):  # for each plot
+            # self.lines[i][0].setData(
+            #     self.x_data[-data_len:], self.y_data[i * 3 + 0][-data_len:]
+            # )
+            # self.lines[i][1].setData(
+            #     self.x_data[-data_len:], self.y_data[i * 3 + 1][-data_len:]
+            # )
             self.lines[i][0].setData(
-                self.x_data[-data_len:], self.y_data[i * 3 + 0][-data_len:]
-            )
-            self.lines[i][1].setData(
-                self.x_data[-data_len:], self.y_data[i * 3 + 1][-data_len:]
-            )
-            self.lines[i][2].setData(
                 self.x_data[-data_len:], self.y_data[i * 3 + 2][-data_len:]
             )
-        self.lines[-1][3].setData(self.x_data[-data_len:], self.y_data[-1][-data_len:])
+        self.lines[-1][1].setData(self.x_data[-data_len:], self.y_data[-1][-data_len:])
 
 
 # Example use:
