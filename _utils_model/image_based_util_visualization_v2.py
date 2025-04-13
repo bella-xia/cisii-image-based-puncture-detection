@@ -27,10 +27,10 @@ class VisualizationModulePG:
         view3.addItem(self.bscan_view)
 
         self.scatter_px = pg.ScatterPlotItem(
-            pen=pg.mkPen(None), brush=pg.mkBrush("r"), size=10
+            pen=pg.mkPen(None), brush=pg.mkBrush("g"), size=10
         )
         self.scatter_mask = pg.ScatterPlotItem(
-            pen=pg.mkPen(None), brush=pg.mkBrush("r"), size=10
+            pen=pg.mkPen(None), brush=pg.mkBrush("g"), size=10
         )
 
         view1.addItem(self.scatter_px)

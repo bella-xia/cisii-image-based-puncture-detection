@@ -27,7 +27,6 @@ if __name__ == "__main__":
             # print("in the loop")
             b_scan_img = leica_reader.get_b_scan(frame_to_save=0)
             if not b_scan_img is None:
-                # print("here")
                 image_message = cv_bridge.cv2_to_imgmsg(b_scan_img * 255)
                 b_scan_publisher.publish(image_message)
     except KeyboardInterrupt:

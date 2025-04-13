@@ -23,9 +23,10 @@ if __name__ == "__main__":
     # rospy.init_node("b_scan_publisher", anonymous=True)
     print("B scan publisher initialized")
 
-    if not rospy.is_shutdown():
-            # print("in the loop")
+    while not rospy.is_shutdown():
+            print("in the loop")
             b_scan_img_volume = leica_reader.fast_get_b_scan_volume()
+            print("Out")
             if b_scan_img_volume is not None:
                 print(b_scan_img_volume.shape)
 

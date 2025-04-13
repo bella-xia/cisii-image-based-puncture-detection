@@ -17,7 +17,7 @@ class ImageProcessor:
         img_h=480,
         outlier=10000,
         y_border=480,
-        velocity_threshold=22,
+        velocity_threshold=20,
         acceleration_threshod=10,
         stop_robot_after_detection=1,  # unit of seconds
         rate_threshold=None,
